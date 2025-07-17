@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 0
+    path: Assets/Scenes/SampleScene.unity
+    guid: 2cda990e2423bbf4892e6590ba056729
+  - enabled: 1
+    path: Assets/Scenes/TitleScreen.unity
+    guid: 1ee48a95f7ede1c42a447a8c9f8b774f
+  - enabled: 1
+    path: Assets/Scenes/WorldsHardestGolf.unity
+    guid: 7135d47a7c3588642827b7a64d42310d
+  - enabled: 1
+    path: Assets/Scenes/SimonScream.unity
+    guid: ae88ba3931ddfc640b3fd9d7acad3297
+  - enabled: 1
+    path: Assets/Scenes/SayThatAnswer.unity
+    guid: 4211b6c85692749449bb70c63c6f402f
+  - enabled: 1
+    path: Assets/Scenes/MyWayToTheGrave.unity
+    guid: f35e337339416234ebe26fa8048f0dff
+  - enabled: 1
+    path: Assets/Scenes/MuffinCredits.unity
+    guid: 7864eae07cb7e0c4293dec4ad4ab8535
+  - enabled: 1
+    path: Assets/Scenes/RogueLikeAtDreamings.unity
+    guid: e5b452e265847bd42acaf3887c9eb972
+  - enabled: 1
+    path: Assets/Scenes/FuckingDreamingAndGasterTennis.unity
+    guid: 40897cedc922cb14caf2ab59583e0308
+  m_configObjects: {}
