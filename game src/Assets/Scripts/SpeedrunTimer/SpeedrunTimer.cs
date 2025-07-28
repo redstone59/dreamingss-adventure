@@ -7,6 +7,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using System.Linq;
 
 namespace Speedrun
 {
@@ -85,6 +86,7 @@ namespace Speedrun
                         running = false;
                         ResetTimers();
                     }
+                    SaveSystem.WriteSaveFile();
                 };
 
                 instance = this;
@@ -165,6 +167,7 @@ namespace Speedrun
 
             string currentScene = SceneManager.GetActiveScene().name;
             bool onHardMode = PlayerPrefs.GetInt(PlayerPrefKeys.HardMode, 0) != 0;
+            MinigameData minigameData = SaveSystem.GetMinigameData();
 
             // Add spaces before each capital letter in the scene name
             currentMinigameText.text = Regex.Replace(currentScene, "([a-z])([A-Z])", "$1 $2");
@@ -172,11 +175,23 @@ namespace Speedrun
             categoryText.text = category;
             if (onHardMode) categoryText.text += " (Hard)";
 
-            string attemptsKey = $"Splits_{currentScene}_Attempts";
-            if (onHardMode) attemptsKey += "_HardMode";
-            int numberOfAttempts = PlayerPrefs.GetInt(attemptsKey, 0);
-            attemptsText.text = $"{numberOfAttempts:N0}";
-            PlayerPrefs.SetInt(attemptsKey, numberOfAttempts + 1);
+            int numberOfAttempts, completedRuns;
+            if (onHardMode)
+            {
+                numberOfAttempts = minigameData.hard.attempts;
+                completedRuns = minigameData.hard.completedRuns;
+            }
+            else
+            {
+                numberOfAttempts = minigameData.normal.attempts;
+                completedRuns = minigameData.normal.attempts;
+            }
+            
+            attemptsText.text = $"{completedRuns:N0}/{numberOfAttempts:N0}";
+
+            InitialiseSavedSplits(ref minigameData, splitNames.Length, onHardMode);
+
+            SaveSystem.SetMinigameData(minigameData);
 
             foreach (SplitObject splitObject in splitObjects)
             {
@@ -191,6 +206,25 @@ namespace Speedrun
             }
         }
 
+        private void InitialiseSavedSplits(ref MinigameData minigameData, int requiredLength, bool onHardMode)
+        {
+            // Initialise saved splits if set to blank array or incorrectly set.
+            if (onHardMode && minigameData.hard.splits.Length != requiredLength)
+            {
+                minigameData.hard.attempts = 0;
+                minigameData.hard.splits = Enumerable.Repeat(float.PositiveInfinity, requiredLength).ToArray();
+                minigameData.hard.pbDeltas = Enumerable.Repeat(float.PositiveInfinity, requiredLength).ToArray();
+                minigameData.hard.bestDeltas = Enumerable.Repeat(float.PositiveInfinity, requiredLength).ToArray();
+            }
+            else if (minigameData.normal.splits.Length != requiredLength)
+            {
+                minigameData.normal.attempts = 0;
+                minigameData.normal.splits = Enumerable.Repeat(float.PositiveInfinity, requiredLength).ToArray();
+                minigameData.normal.pbDeltas = Enumerable.Repeat(float.PositiveInfinity, requiredLength).ToArray();
+                minigameData.normal.bestDeltas = Enumerable.Repeat(float.PositiveInfinity, requiredLength).ToArray();
+            }
+        }
+
         public void BeginTimer()
         {
             currentTime = 0;
@@ -200,8 +234,21 @@ namespace Speedrun
             totalTimeText.color = Color.white;
             fractionalTimeText.color = Color.white;
 
-            // holy fuck
-            attemptsText.text = (int.Parse(attemptsText.text, System.Globalization.NumberStyles.AllowThousands) + 1).ToString();
+            MinigameData data = SaveSystem.GetMinigameData();
+            int attempts, completedRuns;
+            if (PlayerPrefs.GetInt(PlayerPrefKeys.HardMode, 0) != 0)
+            {
+                attempts = ++data.hard.attempts;
+                completedRuns = data.hard.completedRuns;
+            }
+            else
+            {
+                attempts = ++data.normal.attempts;
+                completedRuns = data.normal.completedRuns;
+            }
+            SaveSystem.SetMinigameData(data);
+
+            attemptsText.text = $"{completedRuns:N0}/{attempts:N0}";
         }
 
         public void FailedRun()
@@ -227,13 +274,15 @@ namespace Speedrun
             if (!running) return;
             splitTime = 0;
 
+            float previousSplitTime = splitIndex == 0 ? 0 : splitObjects[splitIndex - 1].SplitThisRun;
+
             if (splitIndex == splitCount - 1)
             {
-                splitObjects[^1].Split(currentTime);
+                splitObjects[^1].Split(currentTime, previousSplitTime);
             }
             else
             {
-                splitObjects[splitIndex].Split(currentTime);
+                splitObjects[splitIndex].Split(currentTime, previousSplitTime);
             }
 
             if (++splitIndex >= splitCount)
@@ -246,6 +295,23 @@ namespace Speedrun
                 fractionalSplitTimeText.color = completedRun;
                 if (_minimised) ToggleMinimise();
 
+                MinigameData data = SaveSystem.GetMinigameData();
+
+                int completedRuns, numberOfAttempts;
+                if (PlayerPrefs.GetInt(PlayerPrefKeys.HardMode, 0) != 0)
+                {
+                    completedRuns = ++data.hard.completedRuns;
+                    numberOfAttempts = data.hard.attempts;
+                }
+                else
+                {
+                    completedRuns = ++data.normal.completedRuns;
+                    numberOfAttempts = data.normal.attempts;
+                }
+                attemptsText.text = $"{completedRuns:N0}/{numberOfAttempts:N0}";
+
+                SaveSystem.SetMinigameData(data);
+
                 if (LevelOrder.FinishSpeedrun(currentTime))
                     SaveSplits();
             }
@@ -253,20 +319,22 @@ namespace Speedrun
 
         public void SaveSplits()
         {
+            List<float> splitsThisRun = new(16);
+            List<float> deltasThisRun = new(16);
+            float previousSplitTime = 0;
+
             for (int i = 0; i < splitCount; i++)
             {
                 SplitObject splitObject = i == splitCount - 1
                                               ? splitObjects[^1]
                                               : splitObjects[i];
 
-                string splitKey = splitObject.GetSplitKey(
-                    SceneManager.GetActiveScene().name,
-                    PlayerPrefs.GetInt(PlayerPrefKeys.HardMode, 0) != 0,
-                    i
-                );
-
-                PlayerPrefs.SetFloat($"{splitKey}_PB", splitObject.SplitThisRun);
+                splitsThisRun.Add(splitObject.SplitThisRun);
+                deltasThisRun.Add(splitObject.SplitThisRun - previousSplitTime);
+                previousSplitTime = splitObject.SplitThisRun;
             }
+
+            SaveSystem.SaveSplits(splitsThisRun.ToArray(), deltasThisRun.ToArray());
         }
 
         // Settings

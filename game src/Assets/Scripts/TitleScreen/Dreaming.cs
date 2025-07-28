@@ -13,7 +13,7 @@ public class Dreaming : MonoBehaviour
     void Start()
     {
         dreamingSprite = GetComponent<SpriteRenderer>();
-        bool hasVictory = PlayerPrefs.GetInt("NumberOfVictories", 0) != 0;
+        bool hasVictory = SaveSystem.GameData.numberofVictories != 0;
         DateTime currentDay = DateTime.Now;
         bool isDreamingsBirthday = currentDay.DayOfYear == DateTime.Parse($"April 24 {DateTime.Now.Year}").DayOfYear;
         partyHat.SetActive(hasVictory || isDreamingsBirthday);

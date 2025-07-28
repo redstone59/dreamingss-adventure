@@ -15,7 +15,7 @@ public class ContestantManager : MonoBehaviour
         if (Random.Range(0, 100) == 0 || ForceRareDreaming())
         {
             chosenContestant = superUltraMegaRareSecondDreaming;
-            PlayerPrefs.SetInt(PlayerPrefKeys.SayThatAnswer.HasSeenSuperUltraMegaRareSecondDreaming, 1);
+            SaveSystem.SetAccessoryValue(PlayerPrefKeys.SayThatAnswer.HasSeenSuperUltraMegaRareSecondDreaming, 1);
         }
         else chosenContestant = contestants[Random.Range(0, contestants.Length)];
         chosenContestant.contestantImage.SetActive(true);
@@ -29,10 +29,10 @@ public class ContestantManager : MonoBehaviour
 
     private bool ForceRareDreaming()
     {
-        if (PlayerPrefs.GetInt(PlayerPrefKeys.SayThatAnswer.HasSeenSuperUltraMegaRareSecondDreaming, 0) != 0) return false;
+        if (SaveSystem.GetAccessoryValue(PlayerPrefKeys.SayThatAnswer.HasSeenSuperUltraMegaRareSecondDreaming, 0) != 0) return false;
 
-        int timesPlayed = PlayerPrefs.GetInt(PlayerPrefKeys.SayThatAnswer.GamesNoEgg, 0) + 1;
-        PlayerPrefs.SetInt(PlayerPrefKeys.SayThatAnswer.GamesNoEgg, timesPlayed);
+        int timesPlayed = SaveSystem.GetAccessoryValue(PlayerPrefKeys.SayThatAnswer.GamesNoEgg, 0) + 1;
+        SaveSystem.SetAccessoryValue(PlayerPrefKeys.SayThatAnswer.GamesNoEgg, timesPlayed);
 
         return timesPlayed >= 4;
     }

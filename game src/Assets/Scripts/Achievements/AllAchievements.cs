@@ -7,8 +7,8 @@ public class AllAchievements
 {
     private static Func<bool> HasSeenLevel(string sceneName)
     {
-        if (PlayerPrefs.GetInt("NumberOfVictories", 0) != 0) return () => true;
-        return () => PlayerPrefs.GetInt("HighestSavedLevel", 0) >= LevelOrder.GetLevelIndex(sceneName);
+        if (SaveSystem.GameData.numberofVictories != 0) return () => true;
+        return () => SaveSystem.GameData.highestSavedLevel >= LevelOrder.GetLevelIndex(sceneName);
     }
 
     // Misc.

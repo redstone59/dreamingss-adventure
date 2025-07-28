@@ -48,15 +48,15 @@ public class MuffinPlayer : MonoBehaviour
 
         if (PlayerPrefs.GetInt("DontSaveProgress", 0) != 0) return;
 
-        int numberOfWins = PlayerPrefs.GetInt("NumberOfVictories", 0);
         if (PlayerPrefs.GetInt("LeftSTA", 0) != 0)
         {
-            PlayerPrefs.SetInt("NumberOfVictories", numberOfWins + 1);
-            PlayerPrefs.SetInt("HighestSavedLevel", 9999);
+            SaveSystem.GameData.numberofVictories++;
+            SaveSystem.GameData.highestSavedLevel = 9999;
             achievementManager.UnlockAchievement(AllAchievements.Adventured);
             if (PlayerPrefs.GetInt("HardMode", 0) != 0)
                 achievementManager.UnlockAchievement(AllAchievements.Retired);
             PlayerPrefs.DeleteKey("LeftSTA");
+            SaveSystem.WriteSaveFile();
         }
 
     }

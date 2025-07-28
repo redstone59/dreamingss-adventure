@@ -34,6 +34,8 @@ public class MenuManager : MonoBehaviour
     void Start()
     {
         mixer.LoadAllVolumes();
+        SaveSystem.CheckForLegacySaveData();
+        SaveSystem.LoadSaveFile();
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
@@ -49,7 +51,7 @@ public class MenuManager : MonoBehaviour
         PlayerPrefs.DeleteKey("LeftSTA");
 
         music = GetComponent<AudioSource>();
-        savedLevel = PlayerPrefs.GetInt(PlayerPrefKeys.SavedLevel, -1) + 1; // Index 0 is the menu for no save game.
+        savedLevel = SaveSystem.GameData.savedLevel + 1; // Index 0 is the menu for no save game.
         
         StartCoroutine(PreloadSavedLevel());
         SetMenu(savedLevel);
@@ -118,9 +120,17 @@ public class MenuManager : MonoBehaviour
             deleteKeybindHeldLength += Time.deltaTime;
             if (deleteKeybindHeldLength >= 5)
             {
-                DeleteAllSaveData();
                 deleteKeybindHeldLength = 0;
-                Start();
+                if (Input.GetKey(KeyCode.S))
+                {
+                    Debug.Log("Wiped splits!");
+                    SaveSystem.ResetSplitsAndTimes();
+                }
+                else
+                {
+                    DeleteAllSaveData();
+                    Start();
+                }
             }
         }
         else deleteKeybindHeldLength = 0;
@@ -139,56 +149,21 @@ public class MenuManager : MonoBehaviour
          *
          * okay so 20 minutes later i realised its the fucking settings i dont want to delete the settings
          * why did i not just save the settings to local variables then use DeleteAll() then set the settings back
+         * 
+         * post release update! i redid the whole save system!
          */
 
-        PlayerPrefs.SetInt(PlayerPrefKeys.TotalScore, 0);
-        PlayerPrefs.SetInt(PlayerPrefKeys.SavedLevel, -1);
-        PlayerPrefs.SetInt(PlayerPrefKeys.HighestSavedLevel, 0);
         PlayerPrefs.DeleteKey(PlayerPrefKeys.KickedOutLastOpen); // Avoids bug where you can get the Afraid? achievement through the game resetting itself
-        PlayerPrefs.SetInt(PlayerPrefKeys.NumberOfVictories, 0);
         PlayerPrefs.DeleteKey(PlayerPrefKeys.HasHitNewGameOrContinue);
 
-        // Resetting Settings
+        // Resetting Non-essential Settings
         PlayerPrefs.SetInt(PlayerPrefKeys.JumpscareSoundSubstituted, 0);
         PlayerPrefs.SetInt(PlayerPrefKeys.HardModeNextGame, 0);
         PlayerPrefs.SetInt(PlayerPrefKeys.SpeedrunMode, 0);
         PlayerPrefs.SetInt(PlayerPrefKeys.DontSaveProgress, 0);
         PlayerPrefs.SetInt(PlayerPrefKeys.SpeedrunMode, 0);
 
-        // Resetting Achievements
-        PlayerPrefs.SetInt(AchievementKeys.OutsideOfMinigame,              0);
-        PlayerPrefs.SetInt(AchievementKeys.FuckingDreamingAndGasterTennis, 0);
-        PlayerPrefs.SetInt(AchievementKeys.WorldsHardestGolf,              0);
-        PlayerPrefs.SetInt(AchievementKeys.RogueLikeAtDreamings,           0);
-        PlayerPrefs.SetInt(AchievementKeys.Simon,                          0);
-        PlayerPrefs.SetInt(AchievementKeys.MyWayToTheGrave,                0);
-        PlayerPrefs.SetInt(AchievementKeys.SayThatAnswer,                  0);
-        PlayerPrefs.SetInt(AchievementKeys.MuffinCredits,                  0);
-
-        // Resetting High Scores and Best Times
-        for (int i = 0; i < LevelOrder.sceneNames.Length; i++)
-        {
-            string scene = LevelOrder.GetLevelAtIndex(i);
-            PlayerPrefs.DeleteKey($"HighScore_{scene}_NormalMode");
-            PlayerPrefs.DeleteKey($"HighScore_{scene}_HardMode");
-
-            PlayerPrefs.DeleteKey($"BestTime_{scene}_NormalMode");
-            PlayerPrefs.DeleteKey($"BestTime_{scene}_HardMode");
-            PlayerPrefs.DeleteKey($"Splits_{scene}_Attempts");
-            PlayerPrefs.DeleteKey($"Splits_{scene}_Attempts_HardMode");
-
-            for (int j = 0; j < 10; j++)
-            {
-                PlayerPrefs.DeleteKey($"Split_{scene}_Normal_{j}");
-                PlayerPrefs.DeleteKey($"Split_{scene}_Hard_{j}");
-            }
-        }
-        PlayerPrefs.SetInt(PlayerPrefKeys.BestScoreNormal, 0);
-        PlayerPrefs.SetInt(PlayerPrefKeys.BestScoreHard, 0);
-
-        // Resetting minigame-specific vars
-        PlayerPrefs.SetInt(PlayerPrefKeys.SayThatAnswer.GamesNoEgg, 0);
-        PlayerPrefs.SetInt(PlayerPrefKeys.SayThatAnswer.HasSeenSuperUltraMegaRareSecondDreaming, 0);
+        SaveSystem.ResetSaveData();
 
         Debug.Log("Deleted all save game data.");
     }
@@ -215,9 +190,8 @@ public class MenuManager : MonoBehaviour
 
     public void NewGame()
     {
-        PlayerPrefs.SetInt(PlayerPrefKeys.SavedLevel, 0);
-        PlayerPrefs.SetInt(PlayerPrefKeys.TotalScore, 0);
-        PlayerPrefs.SetInt(PlayerPrefKeys.HasHitNewGameOrContinue, 1);
+        SaveSystem.GameData.totalScore = 0;
+        SaveSystem.GameData.savedLevel = 0;
 
         bool hardModeEnabled = PlayerPrefs.GetInt(PlayerPrefKeys.HardModeNextGame, 0) != 0;
         PlayerPrefs.SetInt(PlayerPrefKeys.HardMode, hardModeEnabled ? 1 : 0);
@@ -228,12 +202,12 @@ public class MenuManager : MonoBehaviour
 
     public void Continue()
     {
-        PlayerPrefs.SetInt(PlayerPrefKeys.HasHitNewGameOrContinue, 1);
         asyncLevelLoad.allowSceneActivation = true;
     }
 
     public void Exit()
     {
+        SaveSystem.WriteSaveFile();
         Application.Quit();
     }
 
@@ -258,5 +232,9 @@ public class MenuManager : MonoBehaviour
         GameObject.Find("Option Menu stupid parent")
                   .GetComponent<OptionsMenu>()
                   .SetLevelSelectButtons();
+
+        GameObject.Find("Option Menu stupid parent")
+                  .GetComponent<OptionsMenu>()
+                  .ResetUnlockAllButton();
     }
 }

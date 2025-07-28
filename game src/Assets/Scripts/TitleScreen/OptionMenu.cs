@@ -31,6 +31,11 @@ public class OptionsMenu : MonoBehaviour
     public TMP_Dropdown speedrunHorizontal;
     public Slider speedrunOpacity;
 
+    public string unlockAllString;
+    public Button unlockAllButton;
+    public TextMeshProUGUI unlockAllButtonText;
+    public int unlockAllButtonPresses;
+
     public TextMeshProUGUI versionNumberText;
 
     public CursorLockMode previousLockState;
@@ -62,8 +67,13 @@ public class OptionsMenu : MonoBehaviour
             menu.SetActive(false);
             mixer.LoadAllVolumes();
 
+            unlockAllButtonText.text = unlockAllString;
+            unlockAllButtonPresses = 0;
+
             versionNumberText.text = $"dreamings's adventure v{Application.version}";
 
+            SaveSystem.CheckForLegacySaveData();
+            SaveSystem.LoadSaveFile();
             ReloadTimerSettings();
             SetLevelSelectButtons();
             Reload();
@@ -98,11 +108,11 @@ public class OptionsMenu : MonoBehaviour
     public void Reload()
     {
         resolutionHeight.text = Screen.height.ToString();
-        hardModeToggle.isOn = PlayerPrefs.GetInt("HardModeNextGame", 0) != 0;
+        hardModeToggle.isOn = PlayerPrefs.GetInt(PlayerPrefKeys.HardModeNextGame, 0) != 0;
         speedrunToggle.isOn = PlayerPrefs.GetInt(PlayerPrefKeys.SpeedrunMode, 0) != 0;
         timerSettings.SetActive(speedrunToggle.isOn);
 
-        bool enableExtraSettings = PlayerPrefs.GetInt("NumberOfVictories", 0) != 0;
+        bool enableExtraSettings = SaveSystem.GameData.numberofVictories != 0;
         hardModeToggle.gameObject.SetActive(enableExtraSettings);
         speedrunToggle.gameObject.SetActive(enableExtraSettings);
 
@@ -114,19 +124,16 @@ public class OptionsMenu : MonoBehaviour
     public void UpdateStatsText()
     {
         bool isOnHardMode = PlayerPrefs.GetInt(PlayerPrefKeys.HardMode, 0) != 0;
-        int totalScore = PlayerPrefs.GetInt("TotalScore", 0);
+        int totalScore = SaveSystem.GameData.totalScore;
         statsText.text = $"{BoldIf("Current Score", isOnHardMode)}: {totalScore:N0}\n";
 
-        int totalVictories = PlayerPrefs.GetInt("NumberOfVictories", 0);
+        int totalVictories = SaveSystem.GameData.numberofVictories;
         statsText.text += $"Number of wins: {totalVictories:N0}\n";
 
         bool showHardMode = PlayerPrefs.GetInt(PlayerPrefKeys.HardModeNextGame, 0) != 0;
-        int bestScore = PlayerPrefs.GetInt(
-            showHardMode
-                ? PlayerPrefKeys.BestScoreHard
-                : PlayerPrefKeys.BestScoreNormal,
-            0
-        );
+        int bestScore = showHardMode
+                            ? SaveSystem.GameData.bestScoreHard
+                            : SaveSystem.GameData.bestScoreNormal;
         statsText.text += $"{BoldIf("Best Score", showHardMode)}: {bestScore:N0}\n";
     }
 
@@ -173,15 +180,17 @@ public class OptionsMenu : MonoBehaviour
     public void GoToTitleScreen()
     {
         if (InputManager.Initialised) InputManager.Destroy();
+        SaveSystem.WriteSaveFile();
         SceneManager.LoadScene("TitleScreen", LoadSceneMode.Single);
     }
 
     public void SetLevelSelectButtons()
     {
-        int highestSavedLevel = PlayerPrefs.GetInt(PlayerPrefKeys.HighestSavedLevel, 0);
+        int highestSavedLevel = SaveSystem.GameData.highestSavedLevel;
+        SaveSystem.LoadSaveFile();
         for (int i = 0; i < levelSelectButtons.Length; i++)
         {
-            bool dontShowButton = !PlayerPrefs.HasKey(PlayerPrefKeys.HasHitNewGameOrContinue) || i > highestSavedLevel;
+            bool dontShowButton = SaveSystem.GameData.savedLevel == -1 || i > highestSavedLevel;
             levelSelectButtons[i].gameObject.SetActive(!dontShowButton);
             if (dontShowButton)
             {
@@ -212,14 +221,18 @@ public class OptionsMenu : MonoBehaviour
             string bestScoreOrTime = "placeholder";
             if (viewBestTimes)
             {
-                float bestTime = PlayerPrefs.GetFloat($"BestTime_{sceneName}_{(viewHardModeScores ? "HardMode" : "NormalMode")}", float.PositiveInfinity);
+                float bestTime = viewHardModeScores
+                                     ? SaveSystem.MinigameData[i].hard.bestTime
+                                     : SaveSystem.MinigameData[i].normal.bestTime;
                 bestScoreOrTime = bestTime >= TimeSpan.MaxValue.TotalSeconds
-                                        ? "None set!"
-                                        : $"{(int)TimeSpan.FromSeconds(bestTime).TotalMinutes}:{TimeSpan.FromSeconds(bestTime):ss'.'fff}";
+                                      ? "None set!"
+                                      : $"{(int)TimeSpan.FromSeconds(bestTime).TotalMinutes}:{TimeSpan.FromSeconds(bestTime):ss'.'fff}";
             }
             else
             {
-                int bestScore = PlayerPrefs.GetInt($"HighScore_{sceneName}_{(viewHardModeScores ? "HardMode" : "NormalMode")}", 0);
+                int bestScore = viewHardModeScores
+                                    ? SaveSystem.MinigameData[i].hard.highScore
+                                    : SaveSystem.MinigameData[i].normal.highScore;
                 bestScoreOrTime = $"{bestScore:N0}";
             }
 
@@ -255,5 +268,32 @@ public class OptionsMenu : MonoBehaviour
         PlayerPrefs.SetInt(PlayerPrefKeys.SpeedrunMode, enabled ? 1 : 0);
         timerSettings.SetActive(enabled);
         SetLevelSelectButtons();
+    }
+
+    public void ResetUnlockAllButton()
+    {
+        unlockAllButton.interactable = SaveSystem.GameData.numberofVictories == 0;
+        unlockAllButtonPresses = 0;
+        unlockAllButtonText.text = unlockAllString;
+    }
+
+    public void UnlockButtonHit()
+    {
+        unlockAllButtonPresses++;
+        unlockAllButtonPresses = Mathf.Min(unlockAllButtonPresses, unlockAllString.Length);
+
+        unlockAllButtonText.text = $"<color=red>{unlockAllString[..unlockAllButtonPresses]}</color=red>{unlockAllString[unlockAllButtonPresses..]}";
+        if (unlockAllButtonPresses >= unlockAllString.Length)
+        {
+            unlockAllButton.interactable = false;
+            SaveSystem.UnlockAll();
+            Reload();
+            SetLevelSelectButtons();
+        }
+    }
+
+    void OnApplicationQuit()
+    {
+        SaveSystem.WriteSaveFile();
     }
 }

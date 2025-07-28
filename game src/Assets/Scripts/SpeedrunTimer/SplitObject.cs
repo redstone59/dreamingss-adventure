@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using System;
+using Keys;
 
 namespace Speedrun
 {
@@ -13,7 +14,8 @@ namespace Speedrun
         public Image background;
 
         public float splitOnPB = float.PositiveInfinity;
-        public float bestSplit = float.PositiveInfinity;
+        public float pbDelta = float.PositiveInfinity;
+        public float bestDelta = float.PositiveInfinity;
 
         private float _splitThisRun = float.PositiveInfinity;
         public float SplitThisRun
@@ -22,6 +24,8 @@ namespace Speedrun
             private set { _splitThisRun = value; }
         }
 
+        private int _index;
+
         public void Clear()
         {
             label.text = "";
@@ -29,21 +33,17 @@ namespace Speedrun
             splitTimeThisRun.text = "";
         }
 
-        public string GetSplitKey(string sceneName, bool onHardMode, int index)
-        {
-            return $"Split_{sceneName}_{(onHardMode ? "Hard" : "Normal")}_{index}";
-        }
-
         public void Initialise(string sceneName, bool onHardMode, int index, string splitName)
         {
-            string mainKey = GetSplitKey(sceneName, onHardMode, index);
-
-            splitOnPB = PlayerPrefs.GetFloat($"{mainKey}_PB", float.PositiveInfinity);
-            bestSplit = PlayerPrefs.GetFloat($"{mainKey}_BestSplit", float.PositiveInfinity);
+            splitOnPB = SaveSystem.GetPBSplit(index, onHardMode);
+            pbDelta = SaveSystem.GetPBDelta(index, onHardMode);
+            bestDelta = SaveSystem.GetBestDelta(index, onHardMode);
 
             label.text = splitName;
             deltaText.text = "";
             DisplaySplitTime(splitOnPB);
+
+            _index = index;
         }
 
         private void DisplaySplitTime(float time)
@@ -64,16 +64,25 @@ namespace Speedrun
                 splitTimeThisRun.text = span.ToString(@"%s\.fff");
         }
 
-        public void Split(float time)
+        public void Split(float time, float previousSplitTime)
         {
             DisplaySplitTime(time);
             _splitThisRun = time;
 
+            float splitLength = time - previousSplitTime;
+            bool goldSplit = splitLength < bestDelta;
+            Debug.Log($"Gold split? {splitLength} < {bestDelta} => {goldSplit}");
+
             if (!float.IsPositiveInfinity(splitOnPB))
             {
-                float delta = splitOnPB - time;
+                bool improvedDelta = splitLength < pbDelta;
+                bool improvedTime = time < splitOnPB;
+                Debug.Log($"Improved delta? {splitLength} < {bestDelta} => {goldSplit}");
+                Debug.Log($"Improved time? {splitLength} < {bestDelta} => {goldSplit}");
 
-                string sign = delta >= 0 ? "-" : "+";
+                float delta = time - splitOnPB;
+
+                string sign = delta >= 0 ? "+" : "-";
                 TimeSpan span = TimeSpan.FromSeconds(Mathf.Abs(delta));
 
                 if (span.TotalMinutes >= 1)
@@ -81,11 +90,31 @@ namespace Speedrun
                 else
                     deltaText.text = $"{sign}{span:%s\\.ff}";
 
-                deltaText.color = false && time < bestSplit
-                                      ? new Color(0.93f, 0.75f, 0.01f)
-                                      : delta < 0
-                                            ? Color.red
-                                            : Color.green;
+                if (goldSplit) deltaText.text = $"<u>{deltaText.text}</u>";
+
+                deltaText.color = !float.IsPositiveInfinity(bestDelta) && goldSplit
+                                      ? Color.yellow
+                                      : improvedTime
+                                            ? Color.green
+                                            : Color.red;
+
+                // If it's an improved time but slower split or a worse time with a better split, differentiate visually.
+                if (!goldSplit && (improvedDelta ^ improvedTime))
+                    deltaText.color = Color.Lerp(deltaText.color, Color.white, 0.4f);
+            }
+
+            if (goldSplit)
+            {
+                MinigameData data = SaveSystem.GetMinigameData();
+                if (PlayerPrefs.GetInt(PlayerPrefKeys.HardMode, 0) != 0)
+                {
+                    data.hard.bestDeltas[_index] = splitLength;
+                }
+                else
+                {
+                    data.normal.bestDeltas[_index] = splitLength;
+                }
+                SaveSystem.SetMinigameData(data);
             }
         }
     }

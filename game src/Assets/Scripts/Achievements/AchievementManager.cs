@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class AchievementManager : MonoBehaviour
@@ -54,11 +55,21 @@ public class AchievementManager : MonoBehaviour
 
     public void UnlockAchievement(Achievement achievement)
     {
-        int currentAchievementValue = PlayerPrefs.GetInt(achievement.key, 0);
+        int currentAchievementValue = SceneManager.GetActiveScene().name == "TitleScreen"
+                                          ? SaveSystem.GameData.outsideOfMinigameAchievements
+                                          : SaveSystem.GetMinigameData().achievements;
         int value = 1 << achievement.bitPosition;
         if ((currentAchievementValue & value) >= 1) return; // If the achievement is already unlocked, don't continue
 
-        PlayerPrefs.SetInt(achievement.key, currentAchievementValue | value);
+        if (SceneManager.GetActiveScene().name == "TitleScreen")
+            SaveSystem.GameData.outsideOfMinigameAchievements = currentAchievementValue | value;
+        else
+        {
+            MinigameData minigameData = SaveSystem.GetMinigameData();
+            minigameData.achievements = currentAchievementValue | value;
+            SaveSystem.SetMinigameData(minigameData);
+        }
+        SaveSystem.WriteSaveFile();
         achievementQueue.Add(achievement);
     }
 

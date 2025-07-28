@@ -15,7 +15,7 @@ namespace RogueLikeAtDreamings.IntroScreen
         void Start()
         {
             jumpscareToggle.isOn = PlayerPrefs.GetInt("JumpscareSoundSubstituted", 0) != 0;
-            if (PlayerPrefs.GetInt("HighestSavedLevel", 0) > LevelOrder.GetLevelIndex("RogueLikeAtDreamings"))
+            if (SaveSystem.GameData.highestSavedLevel > LevelOrder.GetLevelIndex("RogueLikeAtDreamings"))
                 warningText.SetActive(true);
         }
         

@@ -73,7 +73,7 @@ public class EndCreditsText : MonoBehaviour
                                     : Random.Range(0, 1000) == 0
                                           ? "this message is very rare"
                                           : levelSelectLines[Random.Range(0, levelSelectLines.Length)]
-                              : $"your total score for this run was: {PlayerPrefs.GetInt(PlayerPrefKeys.TotalScore, 0):N0}";
+                              : $"your total score for this run was: {SaveSystem.GameData.totalScore:N0}";
         tmp.text = tmp.text.Replace("$score", scoreLine);
 
         string firstLine = PlayerPrefs.GetInt(PlayerPrefKeys.HardMode, 0) != 0

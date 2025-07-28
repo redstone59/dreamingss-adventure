@@ -19,45 +19,69 @@ public static class LevelOrder
     public static bool FinishSpeedrun(float time)
     {
         bool hardMode = PlayerPrefs.GetInt(PlayerPrefKeys.HardMode, 0) != 0;
-        string highScoreSuffix = hardMode ? "HardMode" : "NormalMode";
-        float bestTimeThisScene = PlayerPrefs.GetFloat($"BestTime_{SceneManager.GetActiveScene().name}_{highScoreSuffix}", float.PositiveInfinity);
-        if (time < bestTimeThisScene)
+        MinigameData currentMinigameSaveData = SaveSystem.GetMinigameData();
+
+        bool isPB = time < (hardMode ? currentMinigameSaveData.hard.bestTime : currentMinigameSaveData.normal.bestTime);
+
+        if (hardMode)
         {
-            PlayerPrefs.SetFloat($"BestTime_{SceneManager.GetActiveScene().name}_{highScoreSuffix}", time);
-            return true;
+            currentMinigameSaveData.hard.bestTime = Mathf.Min(
+                currentMinigameSaveData.hard.bestTime,
+                time
+            );
         }
-        return false;
+        else
+        {
+            currentMinigameSaveData.normal.bestTime = Mathf.Min(
+                currentMinigameSaveData.normal.bestTime,
+                time
+            );
+        }
+
+        SaveSystem.SetMinigameData(currentMinigameSaveData);
+        return isPB;
     }
 
     public static void AddToSavedScore(int minigameScore)
     {
         bool hardMode = PlayerPrefs.GetInt(PlayerPrefKeys.HardMode, 0) != 0;
-        string highScoreSuffix = hardMode ? "HardMode" : "NormalMode";
-        int highscoreThisScene = PlayerPrefs.GetInt($"HighScore_{SceneManager.GetActiveScene().name}_{highScoreSuffix}", 0);
-        if (minigameScore > highscoreThisScene)
+        MinigameData currentMinigameSaveData = SaveSystem.GetMinigameData();
+
+        if (hardMode)
         {
-            PlayerPrefs.SetInt($"HighScore_{SceneManager.GetActiveScene().name}_{highScoreSuffix}", minigameScore);
+            currentMinigameSaveData.hard.highScore = Mathf.Max(
+                currentMinigameSaveData.hard.highScore,
+                minigameScore
+            );
         }
+        else
+        {
+            currentMinigameSaveData.normal.highScore = Mathf.Max(
+                currentMinigameSaveData.normal.highScore,
+                minigameScore
+            );
+        }
+        SaveSystem.SetMinigameData(currentMinigameSaveData);
 
         if (PlayerPrefs.GetInt(PlayerPrefKeys.DontSaveProgress, 0) != 0)
             return;
 
-        int totalScore = PlayerPrefs.GetInt(PlayerPrefKeys.TotalScore, 0);
-        int currentScore = totalScore + minigameScore;
-        PlayerPrefs.SetInt(PlayerPrefKeys.TotalScore, currentScore);
-        int bestScore = PlayerPrefs.GetInt(
-                            hardMode
-                                ? PlayerPrefKeys.BestScoreHard
-                                : PlayerPrefKeys.BestScoreNormal,
-                            0
-                        );
-        if (currentScore > bestScore)
-            PlayerPrefs.SetInt(
-                hardMode
-                    ? PlayerPrefKeys.BestScoreHard
-                    : PlayerPrefKeys.BestScoreNormal,
-                currentScore
+        SaveSystem.GameData.totalScore += minigameScore;
+
+        if (hardMode)
+        {
+            SaveSystem.GameData.bestScoreHard = Mathf.Max(
+                SaveSystem.GameData.bestScoreHard,
+                SaveSystem.GameData.totalScore
             );
+        }
+        else
+        {
+            SaveSystem.GameData.bestScoreNormal = Mathf.Max(
+                SaveSystem.GameData.bestScoreNormal,
+                SaveSystem.GameData.totalScore
+            );
+        }
     }
 
     public static string GetNextLevel(string sceneName)
@@ -75,14 +99,14 @@ public static class LevelOrder
             return;
         }
 
-        int currentLevel = PlayerPrefs.GetInt(PlayerPrefKeys.SavedLevel);
-        PlayerPrefs.SetInt(PlayerPrefKeys.SavedLevel, currentLevel + 1);
+        SaveSystem.GameData.savedLevel++;
 
-        int highestSavedLevel = PlayerPrefs.GetInt(PlayerPrefKeys.HighestSavedLevel, 0);
-        if (currentLevel > highestSavedLevel)
-            PlayerPrefs.SetInt(PlayerPrefKeys.HighestSavedLevel, currentLevel);
+        SaveSystem.GameData.highestSavedLevel = Mathf.Max(
+            SaveSystem.GameData.savedLevel,
+            SaveSystem.GameData.highestSavedLevel
+        );
 
-        PlayerPrefs.Save();
+        SaveSystem.WriteSaveFile();
     }
 
     public static int GetLevelIndex(string sceneName) { return Array.IndexOf(sceneNames, sceneName); }

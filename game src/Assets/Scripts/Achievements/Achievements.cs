@@ -126,7 +126,20 @@ namespace Achievements
     {
         public static bool HasUnlocked(Achievement achievement)
         {
-            return (PlayerPrefs.GetInt(achievement.key, 0) & (1 << achievement.bitPosition)) != 0; 
+            string[] keysInOrder = new string[]
+            {
+                AchievementKeys.FuckingDreamingAndGasterTennis,
+                AchievementKeys.WorldsHardestGolf,
+                AchievementKeys.RogueLikeAtDreamings,
+                AchievementKeys.Simon,
+                AchievementKeys.MyWayToTheGrave,
+                AchievementKeys.SayThatAnswer,
+                AchievementKeys.MuffinCredits
+            };
+            int achievementValue = achievement.key == AchievementKeys.OutsideOfMinigame
+                                       ? SaveSystem.GameData.outsideOfMinigameAchievements
+                                       : SaveSystem.MinigameData[Array.IndexOf(keysInOrder, achievement.key)].achievements;
+            return (achievementValue & (1 << achievement.bitPosition)) != 0;
         }
     }
 }

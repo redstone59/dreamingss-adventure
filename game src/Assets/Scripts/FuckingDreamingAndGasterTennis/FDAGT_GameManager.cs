@@ -175,12 +175,12 @@ public class FDAGT_GameManager : MonoBehaviour
             string nextLevel;
             if (dreamingScored)
             {
-                Cursor.lockState = CursorLockMode.None;
                 nextLevel = LevelOrder.GetNextLevel("FuckingDreamingAndGasterTennis");
             }
             else
                 nextLevel = "TitleScreen";
             
+            Cursor.lockState = CursorLockMode.None;
             loadNextLevel = false;
             StartCoroutine(PreloadLevel(nextLevel));
             return;
@@ -246,11 +246,14 @@ public class FDAGT_GameManager : MonoBehaviour
         cutToBlackObject.SetActive(true);
 
         yield return new WaitForSecondsRealtime(4);
-        int minigameScore = scoreToWin - gasterScore;
-        minigameScore *= 7500;
-        if (fastBallBonusAchieved) minigameScore += 2500;
-        LevelOrder.AddToSavedScore(minigameScore * 3); // Balance scores from other games which are all around mid 100k maximum (except simon)
-        LevelOrder.IncrementSavedLevel();
+        if (dreamingScored)
+        {
+            int minigameScore = scoreToWin - gasterScore;
+            minigameScore *= 7500;
+            if (fastBallBonusAchieved) minigameScore += 2500;
+            LevelOrder.AddToSavedScore(minigameScore * 3); // Balance scores from other games which are all around mid 100k maximum (except simon)
+            LevelOrder.IncrementSavedLevel();
+        }
         loadNextLevel = true;
     }
 
