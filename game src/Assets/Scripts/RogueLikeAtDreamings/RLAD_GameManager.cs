@@ -638,7 +638,7 @@ public class RLAD_GameManager : MonoBehaviour
         }
         else if (negative == Patches.NoRecharge)
         {
-            beacon.uses = beacon.maxUses / 5;
+            beacon.uses = (int)(beacon.maxUses * (1 - 0.2f));
         }
     }    
 
