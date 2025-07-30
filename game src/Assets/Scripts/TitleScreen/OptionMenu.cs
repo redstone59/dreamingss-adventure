@@ -14,6 +14,7 @@ public class OptionsMenu : MonoBehaviour
     public GameObject menu;
     public GameObject[] visibleOnTitle;
     public GameObject[] visibleOnMinigames;
+    public GameObject[] lockedInDemo;
 
     public Button[] levelSelectButtons;
     public AudioMixerAdjust mixer;
@@ -72,6 +73,16 @@ public class OptionsMenu : MonoBehaviour
 
             versionNumberText.text = $"dreamings's adventure v{Application.version}";
 
+            if (SaveSystem.IsDemo())
+            {
+                foreach (GameObject obj in lockedInDemo)
+                {
+                    obj.transform.localScale = Vector3.zero;
+                    obj.transform.position = new(float.MinValue, float.MinValue);
+                    obj.SetActive(false);
+                }
+            }
+
             SaveSystem.CheckForLegacySaveData();
             SaveSystem.LoadSaveFile();
             ReloadTimerSettings();
@@ -123,6 +134,12 @@ public class OptionsMenu : MonoBehaviour
 
     public void UpdateStatsText()
     {
+        if (SaveSystem.IsDemo())
+        {
+            statsText.text = "download the full game at <size=14><b>redstone59.itch.io/dreamingss-adventure</b></size>";
+            return;
+        }
+
         bool isOnHardMode = PlayerPrefs.GetInt(PlayerPrefKeys.HardMode, 0) != 0;
         int totalScore = SaveSystem.GameData.totalScore;
         statsText.text = $"{BoldIf("Current Score", isOnHardMode)}: {totalScore:N0}\n";

@@ -66,7 +66,7 @@ namespace Speedrun
         // Start is called before the first frame update
         void Start()
         {
-            if (instance) DestroyImmediate(gameObject);
+            if (instance || SaveSystem.IsDemo()) DestroyImmediate(gameObject);
             else
             {
                 DontDestroyOnLoad(gameObject);

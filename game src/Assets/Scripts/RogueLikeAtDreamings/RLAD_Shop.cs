@@ -40,6 +40,9 @@ public class RLADShop : MonoBehaviour
         {
             item.OnItemPurchaseCallback = inventoryView.Refresh;
         }
+
+        if (SaveSystem.IsDemo()) return;
+
         achievementManager = GameObject.Find("Achievement Manager").GetComponent<AchievementManager>();
     }
 

@@ -7,6 +7,7 @@ namespace RogueLikeAtDreamings.IntroScreen
     {
         public Toggle jumpscareToggle;
         public GameObject warningText;
+        public Button startGame;
 
         /// <summary>
         /// Start is called on the frame when a script is enabled just before
@@ -14,6 +15,11 @@ namespace RogueLikeAtDreamings.IntroScreen
         /// </summary>
         void Start()
         {
+            if (SaveSystem.IsDemo())
+            {
+                startGame.onClick.Invoke();
+                return;
+            }
             jumpscareToggle.isOn = PlayerPrefs.GetInt("JumpscareSoundSubstituted", 0) != 0;
             if (SaveSystem.GameData.highestSavedLevel > LevelOrder.GetLevelIndex("RogueLikeAtDreamings"))
                 warningText.SetActive(true);

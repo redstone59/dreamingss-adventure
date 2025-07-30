@@ -13,6 +13,7 @@ public struct Menu
     public GameObject menuObject;
     public AudioClip musicClip;
     public float musicVolume;
+    public GameObject[] hideInDemo;
 }
 
 public class MenuManager : MonoBehaviour
@@ -52,6 +53,10 @@ public class MenuManager : MonoBehaviour
 
         music = GetComponent<AudioSource>();
         savedLevel = SaveSystem.GameData.savedLevel + 1; // Index 0 is the menu for no save game.
+        if (SaveSystem.IsDemo())
+        {
+            savedLevel = LevelOrder.GetLevelIndex("RogueLikeAtDreamings") + 1;
+        }
         
         StartCoroutine(PreloadSavedLevel());
         SetMenu(savedLevel);
@@ -81,6 +86,39 @@ public class MenuManager : MonoBehaviour
         }
 
         selectedMenu.menuObject.SetActive(true);
+        bool demo = SaveSystem.IsDemo();
+        foreach (GameObject obj in selectedMenu.hideInDemo)
+        {
+            Button potentialButton = obj.GetComponent<Button>();
+            if (potentialButton != null)
+                potentialButton.interactable = !demo;
+            else
+                obj.SetActive(!demo);
+        }
+
+        if (demo && LevelOrder.GetLevelAtIndex(index - 1) == "RogueLikeAtDreamings")
+        {
+            selectedMenu.menuObject
+                        .transform
+                        .Find("Canvas")
+                        .Find("title text")
+                        .GetComponent<TextMeshProUGUI>()
+                        .text = "Rogue\nLike\nat\nDreaming's";
+
+            Transform dialog = selectedMenu.menuObject
+                               .transform
+                               .Find("Canvas")
+                               .Find("Dialog Box");
+
+            dialog.Find("text")
+                  .GetComponent<TextMeshProUGUI>()
+                  .text = "This game is a <b>demo</b> for <color=blue>dreamings's adventure: a game</color>.\n\nIf you enjoy this game, please check out the full game at <b>redstone59.itch.io/dreamingss-adventure</b>.";
+
+            dialog.Find("header")
+                  .GetComponent<TextMeshProUGUI>()
+                  .text = "Note";
+        }
+
         music.clip = selectedMenu.musicClip;
         music.volume = selectedMenu.musicVolume;
         music.Play();
@@ -190,6 +228,11 @@ public class MenuManager : MonoBehaviour
 
     public void NewGame()
     {
+        if (SaveSystem.IsDemo())
+        {
+            SceneManager.LoadScene("RogueLikeAtDreamings", LoadSceneMode.Single);
+            return;
+        }
         SaveSystem.GameData.totalScore = 0;
         SaveSystem.GameData.savedLevel = 0;
 

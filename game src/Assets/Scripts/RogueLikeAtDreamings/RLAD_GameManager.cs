@@ -109,6 +109,8 @@ public class RLAD_GameManager : MonoBehaviour
 
         tabs.itemSelection.SetCallback(UseItemCallback);
 
+        if (SaveSystem.IsDemo()) return;
+
         scalingMultiplier = PlayerPrefs.GetInt(PlayerPrefKeys.HardMode, 0) != 0
                                 ? 1.5f
                                 : 1f;
@@ -323,7 +325,7 @@ public class RLAD_GameManager : MonoBehaviour
 
     public void StartNight()
     {
-        if (night == 0) speedrunTimer.BeginTimer();
+        if (night == 0) speedrunTimer?.BeginTimer();
 
         results = new()
         {
@@ -413,7 +415,7 @@ public class RLAD_GameManager : MonoBehaviour
         _dreaming.Freeze(true);
         ambience.main.Stop();
         ambience.danger.Stop();
-        speedrunTimer.Split();
+        speedrunTimer?.Split();
         phoneGuy.source.Stop();
 
         int nightlyPay = PlayerPrefs.GetInt(PlayerPrefKeys.HardMode, 0) != 0

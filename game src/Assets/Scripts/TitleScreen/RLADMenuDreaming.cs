@@ -20,6 +20,7 @@ public class RLADMenuDreaming : MonoBehaviour
     void Start()
     {
         dreaming = GetComponent<RawImage>();
+        normalTexture = Resources.Load<Texture>("dreaming");
         startPosition = dreaming.transform.position;
     }
 

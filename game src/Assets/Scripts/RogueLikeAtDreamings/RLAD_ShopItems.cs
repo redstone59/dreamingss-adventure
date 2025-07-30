@@ -24,6 +24,7 @@ public class RLADShopItem : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        if (SaveSystem.IsDemo()) return;
         achievementManager = GameObject.Find("Achievement Manager").GetComponent<AchievementManager>();
     }
 

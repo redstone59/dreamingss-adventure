@@ -150,14 +150,19 @@ public static class SaveSystem
 
     public static void LoadSaveFile()
     {
+        if (IsDemo())
+        {
+            InitialiseSaveData();
+            return;
+        }
         if (_hasLoaded) return;
         _hasLoaded = true;
+        InitialiseSaveData();
         if (!File.Exists(SaveFile))
         {
             ResetSaveData();
             return;
         }
-        InitialiseSaveData();
         string toParse = File.ReadAllText(SaveFile).Decompress();
         Debug.Log($"Decompressed save file is: {toParse}");
 
@@ -350,6 +355,7 @@ public static class SaveSystem
 
     public static void WriteSaveFile()
     {
+        if (IsDemo()) return;
         Debug.Log("Writing save...");
         StringBuilder builder = new(16384);
 
@@ -681,6 +687,11 @@ public static class SaveSystem
         GameData.highestSavedLevel = Mathf.Max(9999, GameData.highestSavedLevel);
         GameData.savedLevel = LevelOrder.GetLevelIndex(LevelOrder.sceneNames[^1]);
         WriteSaveFile();
+    }
+
+    public static bool IsDemo()
+    {
+        return Application.version.ToLower().Contains("demo") || !Application.productName.Contains("adventure");
     }
 }
 

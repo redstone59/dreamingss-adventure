@@ -32,6 +32,11 @@ public class ResolutionAdjust : MonoBehaviour
         targetFPS.gameObject.SetActive(capFPS.isOn);
     }
 
+    public void ApplyVideoSettings()
+    {
+
+    }
+
     public void UpdateResolutionText()
     {
         string text = heightInput.text.Trim();
@@ -45,8 +50,9 @@ public class ResolutionAdjust : MonoBehaviour
 
     public void UpdateResolution()
     {
+        Debug.Log($"{heightInput.text}, {heightInput.text.Length}, {heightInput.text.All(char.IsDigit)}, {Screen.currentResolution.height}");
         if (heightInput.text.Length > 1 && heightInput.text.All(char.IsDigit))
-            screenSettings.SetResolution(Mathf.Clamp(int.Parse(heightInput.text), 480, Screen.height));
+            screenSettings.SetResolution(Mathf.Clamp(int.Parse(heightInput.text), 480, Screen.currentResolution.height));
         
         FullScreenMode[] fullScreenModes =
         { 
